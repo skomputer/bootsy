@@ -1,10 +1,10 @@
 # Bootsy
 
 [![Gem Version](https://badge.fury.io/rb/bootsy.png)](http://badge.fury.io/rb/bootsy)
-[![Build Status](https://secure.travis-ci.org/volmer/bootsy.png?branch=master)](http://travis-ci.org/volmer/bootsy)
+[![Build Status](https://secure.travis-ci.org/volmer/bootsy.png?branch=rails-4)]()
 [![Dependency Status](https://gemnasium.com/volmer/bootsy.png)](https://gemnasium.com/volmer/bootsy)
 [![Code Climate](https://codeclimate.com/github/volmer/bootsy.png)](https://codeclimate.com/github/volmer/bootsy)
-[![Coverage Status](https://coveralls.io/repos/volmer/bootsy/badge.png?branch=master)](https://coveralls.io/r/volmer/bootsy)
+[![Coverage Status](https://coveralls.io/repos/volmer/bootsy/badge.png?branch=rails-4)](https://coveralls.io/r/volmer/bootsy?branch=rails-4)
 
 *Bootsy* is a WYSIWYG solution for Rails based on [Bootstrap-wysihtml5](https://github.com/jhollingworth/bootstrap-wysihtml5) which includes image uploads via [CarrierWave](https://github.com/jnicklas/carrierwave).
 
@@ -13,16 +13,16 @@
 
 * Ruby >= 1.9.3;
 * ImageMagick or GraphicsMagick (for MiniMagick);
-* Rails ~> 3.2 (use [this branch](https://github.com/volmer/bootsy/tree/rails-4) for Rails 4);
+* Rails ~> 4.0;
 * [Twitter Bootstrap](http://twitter.github.com/bootstrap/) properly added on your application.
 
 
 ## Installation
 
-1. Add Bootsy to your Gemfile:
+1. Add Bootsy to your Gemfile (use our specific branch for Rails 4 if you like):
 
   ```ruby
-  gem 'bootsy'
+  gem 'bootsy', github: 'volmer/bootsy', branch: 'rails-4'
   ```
 
 2. Run the bundle command to install it:
