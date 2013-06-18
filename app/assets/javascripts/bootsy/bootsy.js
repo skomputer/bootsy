@@ -124,7 +124,6 @@ window.Bootsy = (function(){
                 "align": "align_img"
               }
             },
-
             "a":  {
               set_attributes: {
                 target: "_blank",
@@ -138,7 +137,15 @@ window.Bootsy = (function(){
             "div": 1,
             // to allow save and edit files with code tag hacks
             "code": 1,
-            "pre": 1
+            "pre": 1,
+
+            //skomputer additions
+            "em", {},
+            "table": {},
+            "th": {},
+            "tr": {},
+            "td": {},
+            "strong" : {}
           }
         },
         color: true, 
