@@ -140,7 +140,7 @@ window.Bootsy = (function(){
             "pre": 1,
 
             //skomputer additions
-            "em", {},
+            "em": {},
             "table": {},
             "th": {},
             "tr": {},
