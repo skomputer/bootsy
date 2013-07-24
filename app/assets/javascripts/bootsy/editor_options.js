@@ -75,7 +75,7 @@ window.Bootsy.editorOptions = {
       "pre": 1,
 
       //skomputer additions
-      "em", {},
+      "em": {},
       "table": {},
       "th": {},
       "tr": {},
