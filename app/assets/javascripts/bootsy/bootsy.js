@@ -1,76 +1,124 @@
-window.Bootsy = (function(){
+window.Bootsy = window.Bootsy || {};
 
-  var Bootsy = {caretBookmark: false, unsavedChanges: false, editor: false, editorOptions: {}, eventCallbacks: {'loaded': []}, triggeredEvents: []};
+window.Bootsy.Area = function ($el) {
+  var self = this;
 
-  Bootsy.translations = {
-    en: {
-      alert_unsaved: 'You have unsaved changes.'
-    }
+  this.progressBar = function () {
+    self.imageGalleryModal.find('div.modal-body').html('<div class="progress progress-striped active"><div class="bar" style="width: 100%;"></div></div>');
   };
 
-  Bootsy.on = function(eventName, callback){
-    Bootsy.eventCallbacks[eventName].push(callback);
+  this.setImageGalleryId = function (id) {
+    self.imageGalleryModal.data('bootsy-gallery-id', id)
+    $('input.bootsy_image_gallery_id').val(id);
   };
 
-  Bootsy.trigger = function(eventName){
-    var callbacks = Bootsy.eventCallbacks[eventName];
-    for(i in callbacks){
-      callbacks[i]();
-    }
-    Bootsy.triggeredEvents.push(eventName);
+  this.refreshGallery = function () {
+    self.progressBar();
+    $.ajax({
+      url: '/bootsy/images',
+      type: 'GET',
+      cache: false,
+      data: {
+        image_gallery_id: self.imageGalleryModal.data('bootsy-gallery-id')
+      },
+      dataType: 'json',
+      success: function (data) {
+        self.imageGalleryModal.find('div.modal-body').html(data.partial);
+        self.imageGalleryModal.find('a.refresh-btn').hide();
+      },
+      error: function (e) {
+        alert(Bootsy.translations[self.locale].error);
+        self.imageGalleryModal.find('a.refresh-btn').show();
+      }
+    });
   };
 
-  Bootsy.after = function(eventName, callback){
-    if(Bootsy.triggeredEvents.indexOf(eventName) != -1){
-      callback();
-    }else{
-      Bootsy.on(eventName, callback);
-    }
-  };
-  
-  Bootsy.progressBar = function(element){
-    element.find('div.modal-body').html('<div class="progress progress-striped active"><div class="bar" style="width: 100%;"></div></div>');
-  };
-
-  Bootsy.refreshGallery = function(element){
-    element.find('a.refresh_btn').show().click();
-  };
-
-  Bootsy.openImageGallery = function(editor){
+  this.openImageGallery = function (editor) {
     editor.currentView.element.focus(false);
-    Bootsy.caretBookmark = editor.composer.selection.getBookmark();
+    self.caretBookmark = editor.composer.selection.getBookmark();
     $('#bootsy_image_gallery').modal('show');
   };
 
-  Bootsy.insertImage = function(image, editor){
+  this.insertImage = function (image) {
     $('#bootsy_image_gallery').modal('hide');
-    editor.currentView.element.focus();
-    if (Bootsy.caretBookmark) {
-      editor.composer.selection.setBookmark(Bootsy.caretBookmark);
-      Bootsy.caretBookmark = null;
+    self.editor.currentView.element.focus();
+    if (self.caretBookmark) {
+      self.editor.composer.selection.setBookmark(self.caretBookmark);
+      self.caretBookmark = null;
     }
-    editor.composer.commands.exec("insertImage", image);
-  }
+    self.editor.composer.commands.exec('insertImage', image);
+  };
 
-  Bootsy.alertUnsavedChanges = function(){
-    if(Bootsy.unsavedChanges){  
-      return Bootsy.translations[Bootsy.locale].alert_unsaved; 
+  this.on = function (eventName, callback) {
+    self.eventCallbacks[eventName].push(callback);
+  };
+
+  this.trigger = function (eventName) {
+    var callbacks = self.eventCallbacks[eventName];
+    for(i in callbacks) {
+      callbacks[i]();
+    }
+    self.triggeredEvents.push(eventName);
+  };
+
+  this.after = function (eventName, callback) {
+    if(self.triggeredEvents.indexOf(eventName) != -1) {
+      callback();
+    }else{
+      self.on(eventName, callback);
     }
   };
 
-  Bootsy.ready = function(){
-    if($('textarea.bootsy_text_area').length > 0){
-      Bootsy.locale = $('textarea.bootsy_text_area').attr('data-bootsy-locale') || $('html').attr('lang') || 'en';
+  this.alertUnsavedChanges = function () {
+    if (self.unsavedChanges) {
+      return Bootsy.translations[self.locale].alert_unsaved;
+    }
+  };
 
-      var templates = {
-        customCommand: function(locale, options) {
+  this.clear = function () {
+    self.editor.clear();
+    self.setImageGalleryId('');
+  };
+
+  this.locale = $el.data('bootsy-locale') || $('html').attr('lang') || 'en';
+  this.caretBookmark = false;
+  this.unsavedChanges = false;
+  this.editor = false;
+  this.eventCallbacks = {'loaded': []};
+  this.triggeredEvents = [];
+  this.editorOptions = {locale: this.locale};
+
+  if ($el.data('bootsy-font-styles') === false) this.editorOptions['font-styles'] = false;
+  if ($el.data('bootsy-emphasis') === false) this.editorOptions.emphasis = false;
+  if ($el.data('bootsy-lists') === false) this.editorOptions.lists = false;
+  if ($el.data('bootsy-html') === true) this.editorOptions.html = true;
+  if ($el.data('bootsy-link') === false) this.editorOptions.link = false;
+  if ($el.data('bootsy-color') === false) this.editorOptions.color = false;
+
+  if ($el.data('bootsy-alert-unsaved') !== false) {
+    window.onbeforeunload = this.alertUnsavedChanges;
+  }
+
+  $el.closest('form').submit(function (e) {
+    self.unsavedChanges = false;
+    return true;
+  });
+
+  if ($el.data('bootsy-image') !== false) {
+    if ($el.data('bootsy-uploader') !== false) {
+      this.editorOptions.image = false;
+      this.editorOptions.customCommand = true;
+      this.editorOptions.customCommandCallback = this.openImageGallery;
+      this.editorOptions.customTemplates = {
+        customCommand: function (locale, options) {
           var size = (options && options.size) ? ' btn-'+options.size : '';
           return "<li>" +
             "<a class='btn" + size + "' data-wysihtml5-command='customCommand' title='" + locale.image.insert + "' tabindex='-1'><i class='icon-picture'></i></a>" +
           "</li>";
-        },
+        }
       };
 
+<<<<<<< HEAD
       Bootsy.editorOptions = {
         parserRules: {
           classes: {
@@ -152,89 +200,53 @@ window.Bootsy = (function(){
         locale: Bootsy.locale, 
         customTemplates: templates
       };
+=======
+      this.imageGalleryModal = $('#bootsy_image_gallery');
+>>>>>>> tags/v1.0.0
 
-      Bootsy.editorOptions.stylesheets = ["/assets/bootsy/bootsy.css"];
+      this.imageGalleryModal.parents('form').after(this.imageGalleryModal);
 
-      if($('textarea.bootsy_text_area').attr('data-bootsy-image') == 'false'){
-        Bootsy.editorOptions.image = false;
-      }else{
+      this.imageGalleryModal.on('click', 'a[href="#refresh-gallery"]', this.refreshGallery);
 
-        if($('textarea.bootsy_text_area').attr('data-bootsy-uploader') != 'false'){
-          Bootsy.editorOptions.image = false;
-          Bootsy.editorOptions.customCommand = true;
-          Bootsy.editorOptions.customCommandCallback = Bootsy.openImageGallery;
+      this.imageGalleryModal.find('a.destroy_btn').click(this.progressBar);
 
-          element = $('#bootsy_image_gallery');
-        
-          element.parents('form').after(element);
+      this.imageGalleryModal.modal({show: false});
+      this.imageGalleryModal.on('shown', this.refreshGallery);
 
-          element.on('click', 'a.refresh_btn', function(e){
-            $(this).hide();
-            Bootsy.progressBar(element);
-          });
+      this.imageGalleryModal.on('hide', function () {
+        self.progressBar();
+        self.editor.currentView.element.focus();
+      });
 
-          element.find('a.destroy_btn').click(function(e){
-            Bootsy.progressBar(element);
-          });
+      this.imageGalleryModal.on('click.dismiss.modal', '[data-dismiss="modal"]', function (e) {
+        e.stopPropagation();
+      });
 
-          element.modal({show: false});
-          element.on('shown', function(){
-            Bootsy.refreshGallery(element);
-          });
-
-          element.on('hide', function() {
-            Bootsy.editor.currentView.element.focus();
-          });
-
-          element.on('click.dismiss.modal', '[data-dismiss="modal"]', function(e) {
-            e.stopPropagation();
-          });
-
-          element.on('click', 'ul.dropdown-menu a.insert', function(e){
-            var imagePrefix = "/"+$(this).attr('data-image-size')+"_";
-            if($(this).attr('data-image-size') == 'original'){
-              imagePrefix = '/';
-            }
-            var img = $(this).parents('li.dropdown').find('img');
-            var obj = {
-              src: img.attr('src').replace("/thumb_", imagePrefix),
-              alt: img.attr('alt').replace("Thumb_", "")
-            };
-
-            obj.align = $(this).attr('data-position');
-
-            Bootsy.insertImage(obj, Bootsy.editor);
-          });
+      this.imageGalleryModal.on('click', 'ul.dropdown-menu a.insert', function (e) {
+        var imagePrefix = "/"+$(this).attr('data-image-size')+"_";
+        if($(this).data('image-size') == 'original') {
+          imagePrefix = '/';
         }
-      }
+        var img = $(this).parents('li.dropdown').find('img');
+        var obj = {
+          src: img.attr('src').replace("/thumb_", imagePrefix),
+          alt: img.attr('alt').replace("Thumb_", "")
+        };
 
-      if($('textarea.bootsy_text_area').attr('data-bootsy-font-styles') == 'false') Bootsy.editorOptions['font-styles'] = false;
-      if($('textarea.bootsy_text_area').attr('data-bootsy-emphasis') == 'false') Bootsy.editorOptions.emphasis = false;
-      if($('textarea.bootsy_text_area').attr('data-bootsy-lists') == 'false') Bootsy.editorOptions.lists = false;
-      if($('textarea.bootsy_text_area').attr('data-bootsy-html') == 'true') Bootsy.editorOptions.html = true;
-      if($('textarea.bootsy_text_area').attr('data-bootsy-link') == 'false') Bootsy.editorOptions.link = false;
-      if($('textarea.bootsy_text_area').attr('data-bootsy-color') == 'false') Bootsy.editorOptions.color = false;
+        obj.align = $(this).data('position');
 
-      Bootsy.editor = $('textarea.bootsy_text_area').wysihtml5(Bootsy.editorOptions).data("wysihtml5").editor;
-
-      if($('textarea.bootsy_text_area').attr('data-bootsy-alert-unsaved') != 'false'){
-        window.onbeforeunload = Bootsy.alertUnsavedChanges;
-      }
-
-      Bootsy.editor.on("change", function(){
-        Bootsy.unsavedChanges = true;
+        self.insertImage(obj);
       });
-
-      $('textarea.bootsy_text_area').closest('form').submit(function(e){
-        Bootsy.unsavedChanges = false;
-        return true;
-      });
-
-      Bootsy.trigger('loaded');
     }
-  };
+  } else {
+    this.editorOptions.image = false;
+  }
 
-  return Bootsy;
-}).call(this);
+  this.editor = $el.wysihtml5($.extend(Bootsy.editorOptions, this.editorOptions)).data('wysihtml5').editor;
 
-$(Bootsy.ready);
+  this.editor.on('change', function () {
+    self.unsavedChanges = true;
+  });
+
+  this.trigger('loaded');
+};

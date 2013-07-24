@@ -9,9 +9,13 @@ module Bootsy
       @images = @gallery.images
 
       respond_to do |format|
-        format.js
         format.html # index.html.erb
-        format.json { render json: @images }
+        format.json do
+          partial_str = render_to_string(file: 'bootsy/images/_index',
+                                          formats: [:html],
+                                          locals: { gallery: @gallery })
+          render json: { partial: partial_str }
+        end
       end
     end
 
@@ -22,7 +26,6 @@ module Bootsy
       @gallery.save! unless @gallery.persisted?
       @image = Image.new image_params
       @image.image_gallery_id = @gallery.id
-      @images = @gallery.images
 
       respond_to do |format|
         if @image.save
@@ -50,11 +53,9 @@ module Bootsy
 
     private
     def find_gallery
-      begin
-        return ImageGallery.find params[:image_gallery_id]
-      rescue
-        return ImageGallery.new
-      end
+      ImageGallery.find params[:image_gallery_id]
+    rescue
+      ImageGallery.new
     end
 
     # Never trust parameters from the scary internet, only allow the white list through.
